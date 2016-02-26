@@ -48,7 +48,6 @@ bool urComm::getData() {
         bytesReceived = udpReceive.Receive(buf, bufSize);
         string msg;
         if (bytesReceived > 0) {
-            cout << "received data" << endl;
             msg = buf;
             
             // add this update time to the fps counter
@@ -133,8 +132,10 @@ void urComm::drawSystemValues(int px, int py) {
     ss << "\t \t (A) \t" << robot.actualTcpSpeed.x << "\t" << robot.actualTcpSpeed.y << "\t" << robot.actualTcpSpeed.z << "\t" << robot.actualTcpSpeedOrientation.x << "\t" << robot.actualTcpSpeedOrientation.y << "\t" << robot.actualTcpSpeedOrientation.z << "\n";
     ss << "Acceleration: \t \t" << robot.tcpAcceleration.x << "\t" << robot.tcpAcceleration.y << "\t" << robot.tcpAcceleration.z << "\n";
     
+    ss << setprecision(3) << fixed;
     ss << "Forces: \t \t" << robot.tcpForces[0] << "\t" << robot.tcpForces[1] << "\t" << robot.tcpForces[2] << "\t" << robot.tcpForces[3] << "\t" << robot.tcpForces[4] << "\t" << robot.tcpForces[5] << "\n";
     
+    ss << setprecision(3) << fixed;
     ss << "Speed Scaling: \t \t" << robot.speedScaling << "\n";
     ss << "LinearMomentumNorm: \t" << robot.linearMomentumNorm << "\n";
     

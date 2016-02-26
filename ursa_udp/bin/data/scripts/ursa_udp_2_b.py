@@ -15,6 +15,7 @@
 import socket
 from struct import pack, unpack
 from datetime import datetime
+import math
 
 # TCP to robot
 TCP_HOST = "192.168.1.9"
@@ -36,6 +37,8 @@ udpFrom = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 udpFrom.setblocking(0) # equivalent to a timeout of 0.0
 # should it hang on the robot commands? For how long?
+
+counter = 0
 
 # connect to the robot (tcp) and open up the udp from port
 try: 
@@ -267,6 +270,32 @@ while(True):
 		# 	tCmdDelay = t2 - t1
 		# 	tMoveDelay = t3 - t2
 		# 	print "command delay: ", tCmdDelay.microseconds, "    move delay: ", tMoveDelay.microseconds
+
+
+	if (len(doubles) > 0):
+
+
+		step = -0.1
+		start = 7
+		q1 = doubles[start]
+		q2 = doubles[start + 1]
+		q3 = doubles[start + 2] 
+		q4 = doubles[start + 3]
+		q5 = doubles[start + 4]
+		q6 = doubles[start + 5]
+		t = 0.008
+		lookahead_time = 0.03
+		gain = 100
+
+		if (counter % 2 == 0):
+			step = math.sin(counter / 125.0) * 1.
+			print step
+			command = "speedj([" + str(step / 3.) + "," + str(-2 * step / 5.) + "," + str(step / 2.) + "," + str(-step / 3.) + "," + str(3 * step / 10.) + "," + str(step) + "],a=1.2)\n"
+		# command = "servoj([" + str(q1) + "," + str(q2) + "," + str(q3) + "," + str(q4) + "," + str(q5) + "," + str(q6) + "],a=0,v=0,t=" + str(t) + ",lookahead_time=" + str(lookahead_time) + ",gain=" + str(gain) + ")\n"
+			tcp.send(command)
+
+		counter += 1
+
 
 	# *******************************
 	# *********** DEBUG *************

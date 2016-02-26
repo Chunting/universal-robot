@@ -19,7 +19,7 @@ class urComm {
 public:
     
     // initialize a ur communication object with connection info
-    urComm(string _hostName = "127.0.0.1", int _portReceive = 5003, int _portSend = 5002);
+    urComm(string _hostName = "127.0.0.1", int _portReceive = 5005, int _portSend = 5004);
     string hostName;
     int portReceive;
     int portSend;

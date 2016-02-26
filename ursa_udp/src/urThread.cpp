@@ -10,7 +10,7 @@
 
 urThread::urThread() {
     
-    string path = ofToDataPath("scripts/ursa_udp_2.py");
+    string path = ofToDataPath("scripts/ursa_udp_3.py");
     cout << "Loading py script at " << path << endl;
     cmd = "python " + path;
     

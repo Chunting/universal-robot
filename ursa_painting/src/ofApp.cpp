@@ -2,66 +2,70 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+    
+    drawing.setName("Drawing");
+    drawing.add(bNewDrawing.set("New Drawing", false));
+    drawing.add(bDebug.set("Debug", true));
+    
+    panel.setup();
+    panel.add(drawing);
+    panel.loadFromFile("settings.xml");
 
-    ofSetFrameRate(125); // 125Hz target for port 30003
-    
-    // start the python script
-    thread.startThread(true);
-    
-    // connect the tcp and open the udp ports
-    ur.connect();
-    
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-
-    // get data from the robot
-    ur.getData();
-    ur.updateFPS();
     
+    // reset drawing
+    if (bNewDrawing) {
+        points.clear();
+        bUpdateLine = false;
+        line.clear();
+        nPts = 0;
+        bNewDrawing = false;
+    }
+    
+    if (bUpdateLine) {
+        
+        
+    }
+
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    ofBackground(255);
+    ofSetBackgroundColor(255);
     
+    // draw circles at all vertices
     ofSetColor(0);
-    // draw robot data to screen
-    ur.drawSystemValues(10, 35);
+    for (int i = 0; i < line.getVertices().size(); i++) {
+        
+        ofDrawCircle(line.getVertices()[i], 5);
+    }
+
+    // draw line
+    line.draw();
     
-    // fps
-    stringstream ss;
-    ss << setprecision(3) << fixed << "App FPS: " << ofGetFrameRate() << "\t\t" << "Data FPS: " << ur.fps;
-    ofDrawBitmapStringHighlight(ss.str(), 10, 20);
+    // debug
+    if (bDebug) {
+        ofDrawBitmapStringHighlight(ofToString(ofGetFrameRate()), 10, 20);
+        panel.draw();
+    }
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::exit() {
-
-    // on exit, send message to py server to close its connections
-    ur.send("exit");
-    // then close own connections
-    ur.closeConnections();
     
-    // stop running the py server
-    thread.stopThread();
+    panel.saveToFile("settings.xml");
     
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     
-    if (key == 's') ur.send("Hi there. I'm alive!!!");
-    if (key == 'c') ur.send("close");
-    if (key == 'e') ur.send("exit");
-    if (key == 'o') ur.send("open");
-    if (key == OF_KEY_UP) {
-        ur.send("movej(p[0,0.5,0.5,2.4,2.4,2.4])");
-    }
-    if (key == OF_KEY_DOWN) {
-        ur.send("movej(p[0,0.5,0.1,2.4,2.4,2.4])");
-    }
+    if (key == 'f') ofToggleFullscreen();
+    if (key == 'b') bDebug = !bDebug;
 
 }
 
@@ -82,12 +86,11 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-    float px = x/ofGetWidth() * 0.5;
-    float py = (1-(y - ofGetHeight()/2.)/(ofGetHeight()/2.)) * 0.5;
-    ofVec3f point(px, 0.5, 0.35 + py);
-    stringstream ss;
-    ss << setprecision(3) << "movej(p[" << point.x << "," << point.y << "," << point.z << ",2.4,2.4,2.4])";
-    ur.send(ss.str());
+    
+    points.push_back(ofVec3f(x, y, 0));
+    if (points.size() > 2) bUpdateLine = true;
+    line.curveTo(ofVec3f(x, y, 0));
+    nPts++;
 
 }
 
