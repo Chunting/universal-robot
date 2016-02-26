@@ -12,14 +12,9 @@ from struct import pack, unpack
 from datetime import datetime as dt
 import math
 
-# debug macro
-db = True
-
-# TODO: Ask for 2048 bytes from controller 
-
-# *******************************************
-# **************** SERVERS ******************
-# *******************************************
+# *******************
+# ***** SERVERS *****
+# *******************
 
 # primary class to handle connection / data timeout
 class urSocket:
@@ -79,7 +74,7 @@ class urSocket:
 		if not self.bConnected:
 			if (self.lastConnectionAttemptTime is not None):
 				diff = dt.now() - self.lastConnectionAttemptTime
-				if (diff > self.connectionTimeout):
+				if (diff.microseconds / 1000 > self.connectionTimeout):
 					print self.type, " reconnecting... via connection timeout"
 					# attempt to reconnect
 					self.close()
@@ -89,7 +84,7 @@ class urSocket:
 			# we're connected, so check data activity
 			if (self.lastDataExchangeTime is not None):
 				diff = dt.now() - self.lastDataExchangeTime
-				if (diff > self.dataTimeout):
+				if (diff.microseconds / 1000 > self.dataTimeout):
 					print "Reconnecting... via data timeout"
 					# we haven't received data in long enough time, so reconnect
 					self.close()
@@ -164,7 +159,7 @@ class tcpClient(urSocket):
 			print self.type, " not connected, so didn't send message \"", message, "\""
 			return 0
 
-# udp receive messages
+# udp client to receive messages
 class udpClient(urSocket):
 	def __init__(self, host, port, connectionTimeout, dataTimeout):
 		urSocket.__init__(self, host, port, connectionTimeout, dataTimeout)
@@ -193,18 +188,21 @@ class udpClient(urSocket):
 			print self.type, " is already connected on port ", self.port
 			return False
 
-	# returns message if there is any
 	def getMessage(self, messageSize):
-		try: 
-			data, addr = self.sock.recvfrom(messageSize)
-			print self.type, " received message \"", data, "\""
-			if (len(data) > 0):
-				self.lastDataExchangeTime = dt.now()
-			return data
-		except:
+		if self.bConnected:
+			try: 
+				data, addr = self.sock.recvfrom(messageSize)
+				print self.type, " received message \"", data, "\""
+				if (len(data) > 0):
+					self.lastDataExchangeTime = dt.now()
+				return data
+			except:
+				return None
+		else:
+			print self.type, " could not get message because socket isn't connected"
 			return None
 
-# udp send messages
+# udp server to send messages
 class udpServer(urSocket):
 	def __init__(self, host, port, connectionTimeout, dataTimeout):
 		urSocket.__init__(self, host, port, connectionTimeout, dataTimeout)
@@ -234,6 +232,7 @@ class udpServer(urSocket):
 		else:
 			print self.type, " not connected, so didn't send message \"", message, "\""
 
+# handles command queue and updating movement data
 class robot:
 	def __init__(self):
 		# holds the list of commands waiting to be executed
@@ -258,21 +257,51 @@ class robot:
 		self.bMoveInProgress = False
 
 	def updatePosition(self, doubleData):
-		self.tcpActualPosition = [doubleData[55], doubleData[56], doubleData[57]]
-		self.tcpTargetPosition = [doubleData[73], doubleData[74], doubleData[75]]
+		self.tcpActualPosition = doubleData[55:57]
+		self.tcpTargetPosition = doubleData[73:75]
 
-		dx = self.tcpActualPosition[0] - self.tcp
+		dx = self.tcpActualPosition[0] - self.tcpTargetPosition[0]
+		dy = self.tcpActualPosition[1] - self.tcpTargetPosition[1]
+		dz = self.tcpActualPosition[2] - self.tcpTargetPosition[2]
+		self.actualToTargetTcpDistance = math.sqrt(dx*dx + dy*dy + dz*dz)
 
+		if (self.actualToTargetTcpDistance <= self.commandTriggerDistance):
+			self.bMoveInProgress = False
+		else:
+			self.bMoveInProgress = True
+
+	def addCommand(self, command):
+		if (command.find("\n") < 0):
+			command += "\n"
+		self.commandQueue.append(command)
+
+	# returns next command in queue (fifo)
+	# keeps rest of commands to return later
+	def getNextCommand(self):
+		if (len(self.commandQueue) == 0): return None
+		command = self.commandQueue[0]
+		self.commandQueue.pop(0)
+		return command
+
+	# returns the last command added to the queue (lifo + empty queue)
+	# empties rest of commands received before this one
+	def getLastCommand(self):
+		if (len(self.commandQueue) == 0): return None
+		command = self.commandQueue[-1]
+		self.commandQueue = []
+		return command
+
+# turn a series of bytes into doubles (big endian)
 def bytesToDoubles(byteData, nDoubles):
-	doubles = []
+	doubleData = []
 	for i in xrange(nDoubles):
 		sum = 0
 		for j in xrange(8):
 			index = 4 + i * 8 + (7 - j)
 			sum += byteData[index]*256**j
 		thisDouble = unpack("d", pack("L", sum))[0]
-		doubles.append(thisDouble)
-	return doubles
+		doubleData.append(thisDouble)
+	return doubleData
 
 # handles all connection across three clients / servers
 class urServer:
@@ -285,7 +314,7 @@ class urServer:
 		self.lastData = []
 
 		# debug number of packets sent
-		self.packetSentLastSecond = 0
+		self.packetsSentLastSecond = 0
 		self.thisSecond = 0
 
 		# robot object contains robot-related data
@@ -315,12 +344,53 @@ class urServer:
 		self.tcp.updateConnection()
 		self.udpFrom.updateConnection()
 
-	def getRobotData(self, expectedMessageSize):
+	# checks for program keys in a string and issues them
+	# returns false if program key isn't found
+	def checkForProgramKey(self, command):
+		if (command == "c"):
+			self.closeAll()
+		elif (command == "q"):
+			self.closeAll()
+			exit()
+		elif (command == 'o'):
+			self.connectAll()
+		# can add more program keys here with more elif statements
+		else:
+			return False
+		print "Received message: \"" + command + "\""
+		return True
+
+	def getUserCommands(self, bufferSize):
+		# get raw data, if there is any
+		data = self.udpFrom.getMessage(bufferSize)
+		if (data is None): return None
+
+		# parse commands and store them in the queue
+		splitData = data.split("\n")
+		splitData = filer(None, splitData)
+		for command in splitData:
+			if (checkForProgramKey(command)):
+				# if a key wasn't found, add the command to the queue
+				self.robot.addCommand(command)
+				print "Received message: \"" + command + "\""
+
+	def sendUserCommands(self, bEmptyQueue, bInterruptMovements):
+		if (not bInterruptMovements and self.robot.bRobotInMotion): return False
+		command = self.robot.getNextCommand()
+		while (command is not None):
+			self.tcp.sendMessage(command)
+			if bEmptyQueue: 
+				command = self.robot.getNextCommand()
+			else:
+				command = None
+		return True
+
+	def getRobotData(self, bufferSize, expectedMessageSize):
 		# don't attempt to get data if we're not connected
 		if (not self.tcp.bConnected): return None
 
 		# first get data
-		rawData = self.tcp.getMessage(2048)
+		rawData = self.tcp.getMessage(bufferSize)
 		if (rawData == None): return None
 
 		# mark that this socket is active
@@ -331,137 +401,75 @@ class urServer:
 		byteData = [int(x.strip()) for x in newData.split(':')]
 		nBytes = len(byteData)
 
-		if (nBytes > 0):
-			# we have data; append it to last data
-			self.lastData.extend(byteData[:])
+		# if no data, return none
+		if (nBytes == 0): return None
 
-			doubleData = []
+		# we have data; append it to last data
+		self.lastData.extend(byteData[:])
 
-			# if the length of last data is at least the size of the expected
-			# message size, then turn it into doubles
-			while (len(self.lastData) >= expectedMessageSize):
-				
-				# first complete packet of bytes
-				firstPacket = self.lastData[:expectedMessageSize]
+		doubleData = []
 
-				# create the doubles
-				doubleData = bytesToDoubles(firstPacket, 132)
-
-				# delete this packet from the running list of bytes received
-				self.lastData = self.lastData[expectedMessageSize:]
-
-			if (len(doubleData) > 0): 
-				# at least one full set of robot data has been received
-				self.robot.updatePosition(doubleData)
-
-				return doubleData
-
-
-
-
-
-
-
-
-
-		if (nBytes >= bytesInMessage):
-			# We have sufficient data to be able to send a message
-			if (len(self.lastData) > 0):
-				# Use the remaining data
-
-
-		if (nBytes == msgSize):
+		# if the length of last data is at least the size of the expected
+		# message size, then turn it into doubles
+		while (len(self.lastData) >= expectedMessageSize):
 			
-			# Beginning of message is found
-			# The data in this message is usable
+			# first complete packet of bytes
+			firstPacket = self.lastData[:expectedMessageSize]
 
-			if (nInts == msgSize):
+			# create the doubles
+			doubleData = bytesToDoubles(firstPacket, 132)
 
-				# All data has arrived. Export doubles
-				doubles = bytesToDoubles(ints, nDoubles)
-				# print doubles[0], "\t beginning of message and all data arrived"
+			# delete this packet from the running list of bytes received
+			self.lastData = self.lastData[expectedMessageSize:]
 
-			else:
+		if (len(doubleData) > 0): 
+			# at least one full set of robot data has been received
+			self.robot.updatePosition(doubleData)
 
-				# Not all data has arrived. Save it in last data for later
-				lastData = ints
+			return doubleData
 
-		else:
+	def robotDataPacketSent(self):
+		self.packetsSentLastSecond += 1
 
-			# Beginning of message is not found
+		timeNow = dt.now()
+		if (timeNow.second is not self.thisSecond):
+			print packetsSent, "packets sent at", datetime.now().time()
+			packetsSent = 0
+			self.thisSecond = timeNow.second
 
-			if (len(lastData) > 0):
+	def sendRobotData(self, doubleData):
+		if doubleData is None: return None
 
-				# There is remaining data from the last message(s)
-				lengthNewData = nInts
-				amtRemainingDataNeeded = 1060 - len(lastData)
+		# send the data to the user over udp as a comma separated string
+		message = str(doubleData[0])
+		for double in doubleData:
+			message += "," + str(double)
+		self.udpTo.sendMessage(message)
 
-				if (amtRemainingDataNeeded < lengthNewData):
+		# keep track of packets sent per second (should be 125 Hz)
+		self.robotDataPacketSent()
 
-					# There is more than sufficient new data to complete remaining data
-					# from previous messages
-
-					lastData.extend(ints[0:amtRemainingDataNeeded])
-					doubles = bytesToDoubles(lastData, nDoubles)
-					# print doubles[0], "\t complete remaining data with leftovers"
-					lastData = ints[amtRemainingDataNeeded:]
-
-				elif (amtRemainingDataNeeded == lengthNewData):
-
-					# There is exactly sufficient new data to complete remaining data
-					# from previous messages
-
-					lastData.extend(ints)
-					doubles = bytesToDoubles(lastData, nDoubles)
-					# print doubles[0], "\t complete remaining data perfectly"
-					lastData = []
-
-				else:
-
-					# There is insufficient data to complete remaining data
-					# Add the new data to lastData
-
-					lastData.extend(ints)
-					# print "data extended for 2+ times"
-
-			else:
-
-				None
-				# print "caught in no-man's land. continue retrieving data until beginning of msg found"
-
-
-
-
-		nDoubles = 132
-		doubles = []
-
-
-		return data
-
-	# get user commands from udpFrom and perform the appropriate
-	# system operations
-	def exchangeUserCommands(self):
-
-		return commands
-
-	# def sendToRobot(self, message):
-
-
-
+# ************************
+# ***** MAIN PROGRAM *****
+# ************************
 
 myServer = urServer("192.168.1.9", 30003, "127.0.0.1", 5001, 5002, 5000, 5000)
 myServer.connectAll()
 myServer.setBlockingAll(False)
 
 while (True):
+	# update socket states to make sure they are connected and active
 	myServer.updateAllConnections()
 
-	myServer.getUserCommands()
-	data = myServer.getRobotData(1060)
+	# get user commands (execute program keys and add robot commands to queue)
+	myServer.getUserCommands(1024)
 
-	myServer.sendUserCommands() # when available
-	myServer.sendRobotData(data) # when available
+	# get robot data
+	data = myServer.getRobotData(2048, 1060)
 
+	# send user commands to robot
+	myServer.sendUserCommands(False, True)
 
-
+	# if we have data, send it to the user
+	myServer.sendRobotData(data)
 
