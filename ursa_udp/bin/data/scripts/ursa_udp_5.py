@@ -7,10 +7,15 @@
 #	(e.g. tcp position) -------- < --------
 #
 
+# Optional:
+# run script with two arguments to specify udp_from_port and udp_to_port:
+# python ursa_udp_5.py 5005 5006
+
 import socket
 from struct import pack, unpack
 from datetime import datetime as dt
 import math
+from sys import argv
 
 # *******************
 # ***** SERVERS *****
@@ -72,9 +77,9 @@ class urSocket:
 
 		# otherwise, first check connection activity
 		if not self.bConnected:
-			if (self.lastConnectionAttemptTime is not None):
+			if (self.lastConnectionAttemptTime is not None and self.connectionTimeout != -1):
 				diff = dt.now() - self.lastConnectionAttemptTime
-				if (diff.microseconds / 1000 > self.connectionTimeout):
+				if (diff.total_seconds() * 1000 > self.connectionTimeout):
 					print self.type, " reconnecting... via connection timeout"
 					# attempt to reconnect
 					self.close()
@@ -82,10 +87,10 @@ class urSocket:
 					self.resetConnectionTimes()
 		else:
 			# we're connected, so check data activity
-			if (self.lastDataExchangeTime is not None):
+			if (self.lastDataExchangeTime is not None and self.dataTimeout != -1):
 				diff = dt.now() - self.lastDataExchangeTime
-				if (diff.microseconds / 1000 > self.dataTimeout):
-					print "Reconnecting... via data timeout"
+				if (diff.total_seconds() * 1000 > self.dataTimeout):
+					print self.type, " reconnecting... via data timeout"
 					# we haven't received data in long enough time, so reconnect
 					self.close()
 					self.connect()
@@ -96,7 +101,7 @@ class tcpClient(urSocket):
 	def __init__(self, host, port, connectionTimeout, dataTimeout):
 		urSocket.__init__(self, host, port, connectionTimeout, dataTimeout)
 		# socket.SOCK_STREAM is tcp communication
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # not urSocket.sock
 		self.type = "TCP"
 
 	def setBlocking(self, bBlocking):
@@ -164,18 +169,19 @@ class udpClient(urSocket):
 	def __init__(self, host, port, connectionTimeout, dataTimeout):
 		urSocket.__init__(self, host, port, connectionTimeout, dataTimeout)
 		# socket.SOCK_DGRAM is UDP communication
-		urSocket.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		# prevent socket from not connecting if socket is already in use
+		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.type = "UDP_FROM"
 
 	def setBlocking(self, bBlocking):
-		self.sock.setblocking(int(bBlocking))
+		self.sock.setblocking(int(bBlocking)) # Why is this urSocket???
 
 	# bind to the port to listen for messages
 	# Note: udp binding is different than tcp connection
 	def connect(self):
 		if not self.bConnected:
-			self.lastConnectionAttemptTime = dt.now()
-			self.lastDataExchangeTime = dt.now() 
+			self.resetConnectionTimes()
 			try: 
 				self.sock.bind(self.addr)
 				self.bConnected = True
@@ -199,14 +205,14 @@ class udpClient(urSocket):
 			except:
 				return None
 		else:
-			print self.type, " could not get message because socket isn't connected"
+			# print self.type, " could not get message because socket isn't connected"
 			return None
 
 # udp server to send messages
 class udpServer(urSocket):
 	def __init__(self, host, port, connectionTimeout, dataTimeout):
 		urSocket.__init__(self, host, port, connectionTimeout, dataTimeout)
-		urSocket.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.type = "UDP_TO"
 
 	# no need to set blocking
@@ -305,10 +311,10 @@ def bytesToDoubles(byteData, nDoubles):
 
 # handles all connection across three clients / servers
 class urServer:
-	def __init__(self, tcp_host, tcp_port, udp_host, udp_from_port, udp_to_port, connectionTimeout, dataTimeout):
-		self.tcp = tcpClient(tcp_host, tcp_port, connectionTimeout, dataTimeout)
-		self.udpFrom = udpClient(udp_host, udp_from_port, connectionTimeout, dataTimeout)
-		self.udpTo = udpServer(udp_host, udp_to_port, connectionTimeout, dataTimeout)
+	def __init__(self, tcp_host, tcp_port, tcp_connectionTimeout, tcp_dataTimeout, udp_host, udp_from_port, udp_to_port, udp_connectionTimeout, udp_dataTimeout):
+		self.tcp = tcpClient(tcp_host, tcp_port, tcp_connectionTimeout, tcp_dataTimeout)
+		self.udpFrom = udpClient(udp_host, udp_from_port, udp_connectionTimeout, udp_dataTimeout)
+		self.udpTo = udpServer(udp_host, udp_to_port, udp_connectionTimeout, udp_dataTimeout)
 
 		# leftover data from previous (unfinished) messages from robot
 		self.lastData = []
@@ -349,7 +355,7 @@ class urServer:
 	def checkForProgramKey(self, command):
 		if (command == "c"):
 			self.closeAll()
-		elif (command == "q"):
+		elif (command == "q" or command == 'e'):
 			self.closeAll()
 			exit()
 		elif (command == 'o'):
@@ -449,15 +455,31 @@ class urServer:
 		# keep track of packets sent per second (should be 125 Hz)
 		self.robotDataPacketSent()
 
+def printStartUpMessage():
+	print "UDP Commands: \'q\' to quit, \'c\' to close sockets, \'o\' to open sockets"
+
+def getSystemArguments():
+	udp_from_port = 5001
+	udp_to_port = 5002
+	if (len(argv) == 3):
+		udp_from_port = argv[1]
+		udp_to_port = argv[2]
+	return udp_from_port, udp_to_port
+
 # ************************
 # ***** MAIN PROGRAM *****
 # ************************
 
-myServer = urServer("192.168.1.9", 30003, "127.0.0.1", 5001, 5002, 5000, 5000)
-myServer.connectAll()
+printStartUpMessage()
+
+_udp_from_port, _udp_to_port = getSystemArguments()
+
+myServer = urServer("192.168.1.9", 30003, 5000, 3000, "127.0.0.1", _udp_from_port, _udp_to_port, -1, -1)
 myServer.setBlockingAll(False)
+myServer.connectAll()
 
 while (True):
+
 	# update socket states to make sure they are connected and active
 	myServer.updateAllConnections()
 
