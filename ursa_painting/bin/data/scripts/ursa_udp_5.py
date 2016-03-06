@@ -421,6 +421,7 @@ class urServer:
 			if (not self.checkForProgramKey(command)):
 				# if a key wasn't found, add the command to the queue
 				self.robot.addCommand(command)
+				print "here"
 				print "Received message: \"" + command + "\""
 
 	def sendUserCommands(self, bEmptyQueue, bInterruptMovements, b125Hz, bRobotDataReturnRate):

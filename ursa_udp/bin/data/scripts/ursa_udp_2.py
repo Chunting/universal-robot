@@ -23,14 +23,17 @@ TCP_PORT = 30003
 # UDP
 UDP_HOST = "127.0.0.1"
 # to OF
-UDP_PORT_TO = 5005
+UDP_PORT_TO = 5002
 # from OF
-UDP_PORT_FROM = 5004
+UDP_PORT_FROM = 5001
 
 # initialize sockets
 tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 udpTo = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 udpFrom = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+udpFrom.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
 
 # set timeout so the program doesn't hang on receiving commands
 
@@ -88,6 +91,7 @@ def bytesToDoubles(ints, nDoubles):
 			sum += ints[index]*256**j
 		thisDouble = unpack("d", pack("L", sum))[0]
 		doubles.append(thisDouble)
+	# print doubles[58]
 	return doubles
 
 
@@ -241,6 +245,7 @@ while(True):
 	# *******************************
 
 	if (len(doubles) > 0):
+
 		# turn doubles into a string
 		doubleStr = str(doubles[0])
 		for i in xrange(1, nDoubles):

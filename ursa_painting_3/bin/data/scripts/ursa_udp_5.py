@@ -26,7 +26,8 @@ import socket
 from struct import pack, unpack
 from datetime import datetime as dt
 import math
-from sys import argv
+import os
+import sys
 
 # *******************
 # ***** SERVERS *****
@@ -385,6 +386,7 @@ class urServer:
 
 	def closeProgram(self):
 		self.closeAll()
+		print "--- Exiting python script ---"
 		exit()
 
 	def updateAllConnections(self):
@@ -515,14 +517,19 @@ class urServer:
 		self.robotDataPacketSent()
 
 def printStartUpMessage():
-	print "UDP Commands: \'q\' to quit" #\'c\' to close sockets, \'o\' to open sockets"
+	print ">>> UDP Commands: \'q\' to quit" #\'c\' to close sockets, \'o\' to open sockets"
 
 def getSystemArguments():
 	udp_from_port = 5001
 	udp_to_port = 5002
-	if (len(argv) == 3):
-		udp_from_port = int(argv[1])
-		udp_to_port = int(argv[2])
+	if (len(sys.argv) >= 3):
+		udp_from_port = int(sys.argv[1])
+		udp_to_port = int(sys.argv[2])
+	if (len(sys.argv) >= 4):
+		if (sys.argv[3] == '0'):
+			# disable logging
+			f = open(os.devnull, 'w')
+			sys.stdout = f
 	return udp_from_port, udp_to_port
 
 # ************************

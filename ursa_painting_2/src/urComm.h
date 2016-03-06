@@ -49,7 +49,7 @@ public:
     void closeConnections();
     
     // send a string message to the robot (don't need "\n')
-    void send(string message);
+    void send(string message, bool bPrintOutput = true);
     
     void drawSystemValues(int px, int py);
     

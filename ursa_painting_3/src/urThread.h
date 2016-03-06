@@ -19,7 +19,7 @@ public:
     
     void threadedFunction();
     
-    void setScript(string path, int udp_from_port, int udp_to_port);
+    void setScript(string path, int udp_from_port, int udp_to_port, bool logging);
     
 };
 

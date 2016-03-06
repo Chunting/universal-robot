@@ -4,6 +4,9 @@
 #include "ofxNetwork.h"
 #include "urComm.h"
 #include "urThread.h"
+#include "ofxGui.h"
+#include "urPath.h"
+#include "urCommThread.h"
 
 class ofApp : public ofBaseApp{
 
@@ -25,13 +28,20 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
         void exit();
     
-    urComm ur;
-    
-    ofTrueTypeFont mono;
-    
+    urCommThread cThread;
     urThread thread;
     
     int commandPort = 5001;
     int dataPort = 5002;
+    
+    ofParameterGroup robot;
+    ofParameter<bool> bFreedrive;
+    bool prevFreedrive = false;
+    
+    ofxPanel panel;
+    
+    // previous coordinates
+    int pmx = 0;
+    int pmy = 0;
 		
 };

@@ -96,12 +96,12 @@ void urComm::closeConnections() {
 // -------------------------------------------------------------------
 
 // no need to send "\n"
-void urComm::send(string message) {
+void urComm::send(string message, bool bPrintOutput) {
     
     // send message as a null terminated string
     int bytesSent = udpSend.Send(message.c_str(), message.length());
     
-    cout << "Send message with " << bytesSent << " bytes: \"" << message << "\"" << endl;
+    if (bPrintOutput) cout << "Send message with " << bytesSent << " bytes: \"" << message << "\"" << endl;
     
 }
 

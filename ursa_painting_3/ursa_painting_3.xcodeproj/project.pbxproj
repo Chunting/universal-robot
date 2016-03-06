@@ -811,6 +811,80 @@
 				<key>sourceTree</key>
 				<string>SOURCE_ROOT</string>
 			</dict>
+			<key>B37A1FD011FF36FCB1957586</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.c.h</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>urPath.h</string>
+				<key>path</key>
+				<string>src/urPath.h</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>A81524D6C545CA0D5E5BA113</key>
+			<dict>
+				<key>fileRef</key>
+				<string>742A85BD4025EE5BC7C9DD2B</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>742A85BD4025EE5BC7C9DD2B</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.cpp.cpp</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>urPath.cpp</string>
+				<key>path</key>
+				<string>src/urPath.cpp</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>422846615ADAB6FBBE938DB2</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.c.h</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>urCommThread.h</string>
+				<key>path</key>
+				<string>src/urCommThread.h</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
+			<key>8A22062A16441523CF59A494</key>
+			<dict>
+				<key>fileRef</key>
+				<string>DFE140334C1A56626DD371EF</string>
+				<key>isa</key>
+				<string>PBXBuildFile</string>
+			</dict>
+			<key>DFE140334C1A56626DD371EF</key>
+			<dict>
+				<key>explicitFileType</key>
+				<string>sourcecode.cpp.cpp</string>
+				<key>fileEncoding</key>
+				<string>30</string>
+				<key>isa</key>
+				<string>PBXFileReference</string>
+				<key>name</key>
+				<string>urCommThread.cpp</string>
+				<key>path</key>
+				<string>src/urCommThread.cpp</string>
+				<key>sourceTree</key>
+				<string>SOURCE_ROOT</string>
+			</dict>
 			<key>EAA58DF511AEB4E8BE488879</key>
 			<dict>
 				<key>explicitFileType</key>
@@ -1143,6 +1217,8 @@
 					<string>E4B69E200A3A1BDC003C02F2</string>
 					<string>E4B69E210A3A1BDC003C02F2</string>
 					<string>0381C6190D320142642C42C0</string>
+					<string>8A22062A16441523CF59A494</string>
+					<string>A81524D6C545CA0D5E5BA113</string>
 					<string>1888D32D0A88018B1DDAF77A</string>
 					<string>8C8FF13ACD142E8C75EC29FF</string>
 					<string>856AA354D08AB4B323081444</string>
@@ -1200,7 +1276,7 @@
 				<key>isa</key>
 				<string>PBXNativeTarget</string>
 				<key>name</key>
-				<string>ursa_painting</string>
+				<string>ursa_painting_3</string>
 				<key>productName</key>
 				<string>myOFApp</string>
 				<key>productReference</key>
@@ -1217,7 +1293,7 @@
 				<key>isa</key>
 				<string>PBXFileReference</string>
 				<key>path</key>
-				<string>ursa_paintingDebug.app</string>
+				<string>ursa_painting_3Debug.app</string>
 				<key>sourceTree</key>
 				<string>BUILT_PRODUCTS_DIR</string>
 			</dict>
@@ -1348,6 +1424,10 @@
 					<string>E4B69E1F0A3A1BDC003C02F2</string>
 					<string>0CBC7D19D0723117FC07E3BF</string>
 					<string>EAA58DF511AEB4E8BE488879</string>
+					<string>DFE140334C1A56626DD371EF</string>
+					<string>422846615ADAB6FBBE938DB2</string>
+					<string>742A85BD4025EE5BC7C9DD2B</string>
+					<string>B37A1FD011FF36FCB1957586</string>
 					<string>B3EF7A13CF8883288F862A4A</string>
 					<string>95E8D9B3A3315C49792BE0F7</string>
 					<string>647AF82844BCFE9AF4F60836</string>
