@@ -10,16 +10,54 @@
 #define __ursa_udp__urThread__
 
 #include "ofMain.h"
+#include "ofxNetwork.h"
+#include "urComm.h"
+#include "urPath.h"
 
+// main thread which manages sending out messages at 125 Hz using a urComm object
 class urThread : public ofThread {
     
 public:
-    
-    string cmd;
-    
+
+    // function that runs at 125Hz
     void threadedFunction();
+    int lastCycle = -1;
     
-    void setScript(string path, int udp_from_port, int udp_to_port, bool logging);
+    // -------------------------
+    // -------- START UP -------
+    // -------------------------
+    
+    // ur communication object that handles sending formatted data and parsing received data
+    urComm ur;
+    
+    // connect to the python script
+    void connect(int _commandPort, int _dataPort);
+    // default communication ports
+    int commandPort = 5001;
+    int dataPort = 5002;
+    
+    // -------------------------
+    // ------ COMMUNICATE ------
+    // -------------------------
+    
+    // flag to start outputting data
+    bool flagOutput = false;
+    // bool to know whether we are actively outputting data
+    bool bOutputActive = false;
+    
+    // prepare to start outputting data
+    void setupOutputFnct(urRobot robot);
+    
+    // output data
+    // function that runs when flag output is turned on. stops running when outputData returns false
+    bool outputFnct(urRobot robot);
+    
+    // -------------------------
+    // -------- SHUTDOWN -------
+    // -------------------------
+    
+    // close python connection --> call this before shutting down thread to prevent ports from staying open
+    void closeConnections();
     
 };
 

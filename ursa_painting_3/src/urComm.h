@@ -31,7 +31,7 @@ public:
     ofxUDPManager udpReceive;
     ofxUDPManager udpSend;
     
-    // non-blocking or not?
+    // non-blocking?
     bool bNonBlocking = true;
     
     // get data (true if some kind of data is received)
@@ -51,10 +51,11 @@ public:
     // send a string message to the robot (don't need "\n')
     void send(string message, bool bPrintOutput = true);
     
-    void drawSystemValues(int px, int py);
+    void drawSystemValues(int px, int py, ofColor color);
     
-    
-    
+    // change the TCP position with a pose transformation
+    void setTCP(vector <float> poseTransform);
+
 };
 
 #endif /* defined(__ursa_udp__urComm__) */

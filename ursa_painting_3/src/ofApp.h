@@ -6,7 +6,7 @@
 #include "urThread.h"
 #include "ofxGui.h"
 #include "urPath.h"
-#include "urCommThread.h"
+#include "urScriptThread.h"
 
 class ofApp : public ofBaseApp{
 
@@ -28,8 +28,8 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
         void exit();
     
-    urCommThread cThread;
-    urThread thread;
+    urScriptThread sThread;
+    urThread cThread;
     
     int commandPort = 5001;
     int dataPort = 5002;

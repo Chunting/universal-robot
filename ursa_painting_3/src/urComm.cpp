@@ -30,10 +30,6 @@ void urComm::connect() {
     udpSend.Connect(hostName.c_str(), portSend);
     udpSend.SetNonBlocking(bNonBlocking);
     
-//    udpReceive.SetTimeoutReceive(1);
-    
-//    cout <<  udpReceive.GetTimeoutReceive() << endl;
-    
 }
 
 // -------------------------------------------------------------------
@@ -107,7 +103,7 @@ void urComm::send(string message, bool bPrintOutput) {
 
 // -------------------------------------------------------------------
 
-void urComm::drawSystemValues(int px, int py) {
+void urComm::drawSystemValues(int px, int py, ofColor color) {
     
     stringstream ss;
     ss << setprecision(3) << fixed;
@@ -168,11 +164,21 @@ void urComm::drawSystemValues(int px, int py) {
     ss << "Digital Input Bits: \t" << robot.digitalInputBits << "\n";
     ss << "Digital Output Bits: \t" << robot.digitalInputBits << "\n";
     
+    ofSetColor(color);
     ofDrawBitmapString(ss.str(), px, py);
     
 }
 
+// ---------------------------------------------------------------------
 
+// pose transform must be 6 floats long
+void urComm::setTCP(vector <float> poseTransform) {
+    
+    stringstream ss;
+    ss << "set_tcp(p[" << ofToString(poseTransform[0]) << "," << ofToString(poseTransform[1]) << "," << ofToString(poseTransform[2]) << "," << ofToString(poseTransform[3]) << "," << ofToString(poseTransform[4]) << "," << ofToString(poseTransform[5]) << "])";
+    send(ss.str());
+    
+}
 
 
 

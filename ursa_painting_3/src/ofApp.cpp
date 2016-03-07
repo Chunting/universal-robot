@@ -9,42 +9,23 @@ void ofApp::setup(){
     panel.setup();
     panel.add(robot);
     
-    
     // start the python script
-    thread.setScript("scripts/ursa_udp_5.py", commandPort, dataPort, false);
-    thread.startThread(true);
+    sThread.setup("scripts/ursa_udp_5.py", commandPort, dataPort, false);
+    sThread.startThread(true);
     
-    // thread to communicate with python script
+    // start thread to communicate with the python script
     cThread.connect(commandPort, dataPort);
     cThread.startThread();
     
-    // setup the path
-    cThread.path.setup(0.5);
+    // set the current tcp transformation
+    cThread.ur.setTCP(vector<float> {0,0,-0.1,0,0,0} ); // down a decimeter
+    
+
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    
-//    if (!prevFreedrive && bFreedrive) {
-//        ur.send("freedrive_mode()");
-//    } else if (prevFreedrive && !bFreedrive) {
-//        ur.send("end_freedrive_mode()");
-//    }
-    
 
-    if (cThread.outputActive) {
-        
-        if (pmx != ofGetMouseX() || pmy != ofGetMouseY()) {
-            // add the point to the path
-            cThread.path.addPoint(ofVec3f(ofGetMouseX(), ofGetMouseY(), 0));
-        }
-    }
-    pmx = ofGetMouseX();
-    pmy = ofGetMouseY();
-    
-    
-    
-    prevFreedrive = bFreedrive;
     
 }
 
@@ -52,13 +33,10 @@ void ofApp::update(){
 void ofApp::draw(){
     ofBackground(255);
     
-    ofSetColor(150);
     // draw robot data to screen
-    cThread.ur.drawSystemValues(10, 35);
+    cThread.ur.drawSystemValues(10, 35, ofColor(150));
     
-    cThread.path.drawPath(ofColor(0));
-    
-//    panel.draw();
+    panel.draw();
     
     // fps
     stringstream ss;
@@ -73,7 +51,7 @@ void ofApp::exit() {
     cThread.stopThread();
     
     // stop running the py server
-    thread.stopThread();
+    sThread.stopThread();
 }
 
 //--------------------------------------------------------------
@@ -90,15 +68,7 @@ void ofApp::keyPressed(int key){
         cThread.ur.send("teach_mode()\n");
     }
     
-    if (key == 's') {
-        cThread.path.setStartingPoint(cThread.ur.robot.actualTcpPosition);
-    }
-    if (key == 'c') {
-        cThread.path.reset();
-    }
-    if (key == 'r') {
-        cThread.flagOutput = true;
-    }
+
 
 }
 
@@ -120,7 +90,7 @@ void ofApp::mouseDragged(int x, int y, int button){
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
 
-    cThread.path.addPoint(ofVec3f(x, y, 0));
+//    cThread.path.addPoint(ofVec3f(x, y, 0));
 
 }
 
